@@ -3,321 +3,333 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 默書助手 - Dictation Helper</title>
+    <title>AI 默書助手 - Pro Version</title>
     <style>
-        /* 基礎樣式 */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f4f7f6; }
-        h1 { color: #007bff; text-align: center; margin-bottom: 30px; }
-        fieldset { border: 1px solid #ccc; border-radius: 8px; padding: 20px; margin-bottom: 20px; background-color: #fff; }
-        legend { font-size: 1.2em; font-weight: bold; color: #333; padding: 0 10px; }
-        label { display: block; margin-top: 10px; font-weight: 500; }
-        .input-group { margin-bottom: 15px; }
-        textarea { width: 98%; min-height: 150px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; }
-        input[type="range"] { width: 100%; margin: 5px 0; }
-        button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-right: 10px; transition: background-color 0.3s; }
-        .main-controls button { background-color: #28a745; color: white; }
-        .main-controls button:hover { background-color: #218838; }
-        .upload-controls button { background-color: #007bff; color: white; margin-top: 5px; }
-        .upload-controls button:hover { background-color: #0056b3; }
-        .progress-display { background-color: #ffe0b2; padding: 15px; border-radius: 5px; text-align: center; margin-top: 20px; font-size: 1.1em; font-weight: bold; color: #e65100; }
-        small { display: block; margin-top: 5px; color: #666; }
+        /* UI 優化樣式 */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f0f4f8; color: #333; }
+        h1 { color: #2c3e50; text-align: center; margin-bottom: 20px; }
+        
+        /* 模式切換按鈕 */
+        .mode-switch { display: flex; justify-content: center; margin-bottom: 20px; background: #fff; padding: 10px; border-radius: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .mode-label { padding: 10px 25px; cursor: pointer; border-radius: 25px; font-weight: bold; transition: 0.3s; margin: 0 5px; }
+        .mode-input { display: none; }
+        .mode-input:checked + .mode-label { background-color: #007bff; color: white; transform: scale(1.05); }
+        
+        fieldset { border: none; border-radius: 12px; padding: 25px; margin-bottom: 20px; background-color: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        legend { font-size: 1.2em; font-weight: bold; color: #007bff; padding: 0 10px; background: #f0f4f8; border-radius: 5px; }
+        
+        textarea { width: 100%; min-height: 180px; padding: 15px; border: 2px solid #e0e0e0; border-radius: 8px; resize: vertical; font-size: 16px; box-sizing: border-box; transition: border-color 0.3s; }
+        textarea:focus { border-color: #007bff; outline: none; }
+        
+        label { display: block; margin-top: 15px; font-weight: 600; color: #555; }
+        input[type="range"] { width: 100%; margin: 8px 0; accent-color: #007bff; }
+        small { display: block; margin-top: 5px; color: #888; font-size: 0.9em; }
+        
+        button { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; margin-right: 10px; transition: all 0.2s; font-weight: bold; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-primary:hover { background-color: #0056b3; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-success:hover { background-color: #218838; }
+        .btn-outline { background-color: transparent; border: 2px solid #007bff; color: #007bff; }
+        .btn-outline:hover { background-color: #e7f1ff; }
+
+        .progress-display { background-color: #fff3cd; padding: 20px; border-radius: 8px; text-align: center; margin-top: 20px; font-size: 1.2em; font-weight: bold; color: #856404; border: 1px solid #ffeeba; }
+
+        /* 隱藏/顯示控制 */
+        .vocab-only { display: block; }
+        .passage-only { display: none; }
     </style>
 </head>
 <body>
 
-    <h1>📝 AI 默書助手 (句子修正版)</h1>
+    <h1>📝 AI 默書助手 (Pro)</h1>
+
+    <div class="mode-switch">
+        <input type="radio" id="modeVocab" name="dictationMode" class="mode-input" checked onchange="switchMode('vocab')">
+        <label for="modeVocab" class="mode-label">🍎 詞語模式 (Vocabulary)</label>
+
+        <input type="radio" id="modePassage" name="dictationMode" class="mode-input" onchange="switchMode('passage')">
+        <label for="modePassage" class="mode-label">📖 課文模式 (Passage)</label>
+    </div>
 
     <fieldset>
-        <legend>1. 📝 輸入默書內容 (Paste Words Here)</legend>
-        <div class="input-group">
-            <textarea id="wordInput" placeholder="在此輸入。請注意：
-1. 每個「詞語」或「句子」請使用【Enter 換行】或【逗號】分隔。
-2. 句子中間的空格現在會被保留 (例如: Apple is red)。"></textarea>
-        </div>
-        <div class="upload-controls">
-            <button onclick="clearInput()">清空</button>
-            <button onclick="document.getElementById('fileUpload').click()">上載文件 (TXT/PDF/圖片)</button>
-            <input type="file" id="fileUpload" accept=".txt,.pdf,.doc,.docx,.jpg,.jpeg,.png" style="display: none;">
-            <button onclick="startCameraScan()">📸 相機掃描 (需支援)</button>
+        <legend>1. 輸入內容</legend>
+        <textarea id="wordInput" placeholder="在此輸入詞語..."></textarea>
+        
+        <div style="margin-top: 15px;">
+            <button onclick="clearInput()" class="btn-outline">清空</button>
+            <button onclick="document.getElementById('fileUpload').click()" class="btn-primary">上載文件</button>
+            <input type="file" id="fileUpload" accept=".txt,.pdf,.jpg,.png" style="display: none;">
+            
+            <span id="shuffleContainer" class="vocab-only" style="display:inline-block; margin-left: 10px;">
+                <label style="display:inline; cursor:pointer;">
+                    <input type="checkbox" id="shuffleWords"> 🎲 打亂順序 (Shuffle)
+                </label>
+            </span>
         </div>
     </fieldset>
 
     <fieldset>
-        <legend>2. ⚙️ 默書設定 (Settings)</legend>
+        <legend>2. 設定</legend>
 
-        <div class="input-group">
-            <label for="languageSelect">🗣️ 語言及口音 (Language & Accent):</label>
-            <select id="languageSelect">
-                <option value="zh-HK">Cantonese (HK) 🇭🇰 - 廣東話 (推薦)</option>
-                <option value="en-US">English (US) 🇺🇸</option>
-                <option value="en-GB">English (UK) 🇬🇧</option>
-                <option value="zh-CN">Mandarin (CN) 🇨🇳 - 普通話 (備用)</option>
-            </select>
-        </div>
+        <label>🗣️ 語言 (Language):</label>
+        <select id="languageSelect" style="padding: 8px; border-radius: 4px; width: 100%;">
+            <option value="zh-HK">Cantonese (HK) 🇭🇰 - 廣東話</option>
+            <option value="en-US">English (US) 🇺🇸</option>
+            <option value="en-GB">English (UK) 🇬🇧</option>
+            <option value="zh-CN">Mandarin (CN) 🇨🇳 - 普通話</option>
+        </select>
 
-        <div class="input-group">
-            <label for="voiceSelect">🔊 發音者 (Voice):</label>
-            <select id="voiceSelect" disabled>
-                <option value="default">正在加載語音資源...</option>
-            </select>
-            <small>注：建議在手機上選擇**系統預設**以確保發音成功。</small>
-        </div>
-        
-        <div class="input-group">
-            <label for="rateSlider">🐢 閱讀速度 (Reading Speed): <span id="rateValue">1.0x (標準)</span></label>
-            <input type="range" id="rateSlider" min="0.5" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('rateValue').innerText = this.value + 'x' + (this.value == 1.0 ? ' (標準)' : '')">
-        </div>
+        <label>🐢 語速 (Speed): <span id="rateValue">1.0x</span></label>
+        <input type="range" id="rateSlider" min="0.5" max="1.5" step="0.1" value="0.9" oninput="document.getElementById('rateValue').innerText = this.value + 'x'">
 
-        <div class="input-group">
-            <label for="gapSlider">⏳ 詞語間隔 (Gap Between Words): <span id="gapValue">5 秒</span></label>
-            <input type="range" id="gapSlider" min="1" max="10" step="1" value="5" oninput="document.getElementById('gapValue').innerText = this.value + ' 秒'">
-        </div>
-        
-        <div class="input-group">
-            <label for="repeatCountSlider">🔁 **重複次數** (Repeat Count): <span id="repeatCountValue">1 次</span></label>
-            <input type="range" id="repeatCountSlider" min="1" max="5" step="1" value="1" oninput="document.getElementById('repeatCountValue').innerText = this.value + ' 次'">
-            <small>（每次重複之間相隔 2 秒。）</small>
-        </div>
+        <label>⏳ 間隔 (Gap): <span id="gapValue">5 秒</span></label>
+        <input type="range" id="gapSlider" min="1" max="15" step="1" value="5" oninput="document.getElementById('gapValue').innerText = this.value + ' 秒'">
 
-        <div class="input-group">
-            <label>
-                <input type="checkbox" id="readPunctuation">
-                **讀出標點** (Read Punctuation)
-            </label>
-            <small>（例如讀出 "Question Mark"。未勾選時，語音會依標點停頓但不會讀出名稱。）</small>
-        </div>
+        <label>🔁 重複次數 (Repeat): <span id="repeatCountValue">2 次</span></label>
+        <input type="range" id="repeatCountSlider" min="1" max="5" step="1" value="2" oninput="document.getElementById('repeatCountValue').innerText = this.value + ' 次'">
 
+        <label>
+            <input type="checkbox" id="readPunctuation" checked>
+            **讀出標點符號** (Read Punctuation)
+        </label>
+        <small id="punctHint">勾選後，會將「，」讀作「逗號」，「。」讀作「句號」等。</small>
     </fieldset>
     
     <fieldset>
-        <legend>3. ▶️ 執行操作與進度</legend>
+        <legend>3. 開始</legend>
         <div class="main-controls">
-            <button id="startButton">▶️ 開始默書</button>
-            <button id="pauseButton" disabled>⏸️ 暫停 / 繼續</button>
-            <button id="resetButton" disabled>🔄 重新開始</button>
+            <button id="startButton" class="btn-success">▶️ 開始默書</button>
+            <button id="pauseButton" class="btn-primary" disabled>⏸️ 暫停</button>
+            <button id="resetButton" class="btn-outline" disabled>🔄 重置</button>
         </div>
-
-        <div class="progress-display">
-            正在等待語音資源...
-        </div>
+        <div class="progress-display">準備就緒</div>
     </fieldset>
 
     <script>
-        // --- 輔助功能 ---
-        function clearInput() {
-            document.getElementById('wordInput').value = '';
-        }
-        function startCameraScan() {
-            alert('啟動相機掃描功能... (此功能需要進階的 WebRTC 及 OCR 服務支援)');
-        }
+        // 變數初始化
+        const wordInput = document.getElementById('wordInput');
+        const languageSelect = document.getElementById('languageSelect');
+        const rateSlider = document.getElementById('rateSlider');
+        const gapSlider = document.getElementById('gapSlider');
+        const repeatCountSlider = document.getElementById('repeatCountSlider');
+        const readPunctuation = document.getElementById('readPunctuation');
+        const shuffleWords = document.getElementById('shuffleWords');
+        
+        const startButton = document.getElementById('startButton');
+        const pauseButton = document.getElementById('pauseButton');
+        const resetButton = document.getElementById('resetButton');
+        const progressDisplay = document.querySelector('.progress-display');
+        const shuffleContainer = document.getElementById('shuffleContainer');
 
-        // --- 核心 JavaScript 邏輯 ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const wordInput = document.getElementById('wordInput');
-            const languageSelect = document.getElementById('languageSelect');
-            const voiceSelect = document.getElementById('voiceSelect');
-            const rateSlider = document.getElementById('rateSlider');
-            const gapSlider = document.getElementById('gapSlider');
-            const readPunctuation = document.getElementById('readPunctuation');
-            const repeatCountSlider = document.getElementById('repeatCountSlider');
+        let wordsArray = [];
+        let currentIndex = 0;
+        let isPaused = false;
+        let currentTimeout = null;
+        let availableVoices = [];
+        let currentMode = 'vocab'; // 'vocab' or 'passage'
+        const synth = window.speechSynthesis;
+
+        // --- 模式切換邏輯 ---
+        window.switchMode = function(mode) {
+            currentMode = mode;
+            const inputArea = document.getElementById('wordInput');
             
-            const startButton = document.getElementById('startButton');
-            const pauseButton = document.getElementById('pauseButton');
-            const resetButton = document.getElementById('resetButton');
-            const progressDisplay = document.querySelector('.progress-display');
+            if (mode === 'vocab') {
+                inputArea.placeholder = "【詞語模式】\n請輸入詞語，用 Enter 或 逗號 分隔。\n例如：\n蘋果\n橙\n香蕉";
+                shuffleContainer.style.display = 'inline-block';
+                rateSlider.value = 1.0; document.getElementById('rateValue').innerText = '1.0x';
+            } else {
+                inputArea.placeholder = "【課文模式】\n請直接貼上整段課文。\n程式會自動根據標點符號 (，。？！) 切分成短句朗讀。";
+                shuffleContainer.style.display = 'none';
+                rateSlider.value = 0.8; document.getElementById('rateValue').innerText = '0.8x'; // 課文默認慢一點
+            }
+        }
+        // 初始化提示
+        switchMode('vocab');
 
-            let wordsArray = [];
-            let currentIndex = 0;
-            let isPaused = false;
-            let currentTimeout = null;
-            let availableVoices = [];
-            const REPEAT_GAP = 2000; 
+        // --- 標點符號轉換表 ---
+        const punctuationMap = {
+            '，': '逗號', ',': 'Comma',
+            '。': '句號', '.': 'Full stop',
+            '？': '問號', '?': 'Question mark',
+            '！': '感嘆號', '!': 'Exclamation mark',
+            '：': '冒號', ':': 'Colon',
+            '「': '開引號', '」': '關引號',
+            '“': 'Open quote', '”': 'Close quote'
+        };
 
-            // 檢查 API 支援
-            if (!('speechSynthesis' in window)) {
-                progressDisplay.textContent = "❌ 警告：您的瀏覽器不支持語音合成功能。";
-                startButton.disabled = true;
+        // --- 核心功能 ---
+
+        function clearInput() { wordInput.value = ''; }
+
+        // 語音加載
+        function populateVoices() { availableVoices = synth.getVoices(); }
+        if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = populateVoices;
+        setTimeout(populateVoices, 1000);
+
+        // 處理輸入文字 (核心變更)
+        function prepareWords() {
+            let text = wordInput.value.trim();
+            if (!text) return false;
+
+            if (currentMode === 'vocab') {
+                // 1. 詞語模式：用換行或逗號分割
+                wordsArray = text.split(/[\n\r,，]+/).map(w => w.trim()).filter(w => w.length > 0);
+                
+                // 打亂順序功能
+                if (shuffleWords.checked) {
+                    wordsArray.sort(() => Math.random() - 0.5);
+                }
+
+            } else {
+                // 2. 課文模式：智能斷句 (保留標點在句尾)
+                // 正則解釋：依據標點分割，但保留標點
+                // 邏輯：將文章切分成 "短語+標點" 的組合
+                
+                // 先將換行符轉為空格，避免斷行造成誤讀
+                text = text.replace(/[\n\r]+/g, ' ');
+                
+                // 簡單斷句：依據標點符號切分
+                // 使用正則 capture group 讓 split 保留分隔符，然後再合併
+                let rawParts = text.split(/([，,。.\?？!！;；：:])/);
+                
+                wordsArray = [];
+                for (let i = 0; i < rawParts.length; i += 2) {
+                    let sentence = rawParts[i];
+                    let punct = rawParts[i+1] || ""; // 獲取對應的標點
+                    
+                    if (sentence.trim().length > 0 || punct.length > 0) {
+                         // 將文字和標點組合在一起作為一個默書單位
+                         wordsArray.push(sentence + punct);
+                    }
+                }
+            }
+            
+            currentIndex = 0;
+            isPaused = false;
+            return true;
+        }
+
+        // 朗讀單個項目 (含重複邏輯)
+        function speakItem(text, repeatCount, currentRep) {
+            if (isPaused) return;
+
+            let textToRead = text;
+
+            // 處理標點讀音
+            if (readPunctuation.checked) {
+                // 遍歷字典替換符號為文字
+                for (let symbol in punctuationMap) {
+                    textToRead = textToRead.split(symbol).join(" " + punctuationMap[symbol] + " ");
+                }
+            } else {
+                // 如果不讀標點，為了語音流暢，可以暫時保留符號讓 AI 停頓，或者不處理
+                // 這裡保持原樣，TTS 引擎通常會對標點做停頓處理
+            }
+
+            const utterance = new SpeechSynthesisUtterance(textToRead);
+            utterance.rate = parseFloat(rateSlider.value);
+            utterance.lang = languageSelect.value;
+            
+            // 選擇最佳語音
+            if (availableVoices.length > 0) {
+                const targetLang = languageSelect.value;
+                // 優先找對應語言的語音
+                const voice = availableVoices.find(v => v.lang === targetLang && !v.name.includes('Google')) || availableVoices.find(v => v.lang === targetLang);
+                if (voice) utterance.voice = voice;
+            }
+
+            // 更新顯示
+            progressDisplay.innerText = `📢 [${currentIndex + 1}/${wordsArray.length}] ${text} (第 ${currentRep} 次)`;
+            
+            utterance.onend = () => {
+                if (currentRep < repeatCount) {
+                    // 重複朗讀之間的短間隔 (固定 2 秒)
+                    currentTimeout = setTimeout(() => {
+                        speakItem(text, repeatCount, currentRep + 1);
+                    }, 2000);
+                } else {
+                    // 完成所有重複，進入下一個詞
+                    const mainGap = parseFloat(gapSlider.value) * 1000;
+                    currentTimeout = setTimeout(nextItem, mainGap);
+                }
+            };
+
+            utterance.onerror = (e) => {
+                console.error("Speech Error", e);
+                // 出錯也嘗試繼續
+                currentTimeout = setTimeout(nextItem, 2000);
+            };
+
+            synth.speak(utterance);
+        }
+
+        function nextItem() {
+            if (currentIndex >= wordsArray.length) {
+                progressDisplay.innerText = "🎉 默書完成！";
+                resetControls(true);
+                return;
+            }
+            if (isPaused) return;
+
+            const itemText = wordsArray[currentIndex];
+            const repeats = parseInt(repeatCountSlider.value);
+            
+            speakItem(itemText, repeats, 1);
+            currentIndex++;
+        }
+
+        // --- 按鈕事件 ---
+        startButton.onclick = () => {
+            if (synth.speaking || isPaused) return;
+            synth.cancel();
+
+            if (!prepareWords()) {
+                alert("請先輸入內容！");
                 return;
             }
 
-            const synth = window.speechSynthesis;
-
-            // --- 步驟 1: 加載語音 ---
-            function populateVoiceList() {
-                availableVoices = synth.getVoices();
-                voiceSelect.innerHTML = '';
-                voiceSelect.disabled = false;
-                
-                let defaultOption = document.createElement('option');
-                defaultOption.value = 'system-default';
-                defaultOption.textContent = '系統預設語音 (推薦)';
-                voiceSelect.appendChild(defaultOption);
-
-                availableVoices.forEach(voice => {
-                    let option = document.createElement('option');
-                    option.value = voice.name;
-                    option.textContent = `${voice.name} (${voice.lang})`;
-                    voiceSelect.appendChild(option);
-                });
-                
-                if (availableVoices.length > 0) {
-                     progressDisplay.textContent = "✅ 語音資源加載完成，可以開始默書。";
-                }
-            }
-
-            if (synth.onvoiceschanged !== undefined) {
-                synth.onvoiceschanged = populateVoiceList;
-            }
-            setTimeout(() => {
-                if (availableVoices.length === 0) populateVoiceList();
-            }, 1000);
+            startButton.disabled = true;
+            pauseButton.disabled = false;
+            resetButton.disabled = false;
+            startButton.innerText = "進行中...";
             
-            languageSelect.addEventListener('change', populateVoiceList);
+            nextItem();
+        };
 
-            // --- 步驟 2: 朗讀邏輯 ---
-            function readWordWithRepeat(text, rate, totalRepeats, currentRepeat) {
-                if (isPaused) return; 
-
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = parseFloat(rate);
-                utterance.lang = languageSelect.value;
-
-                const selectedVoiceName = voiceSelect.value;
-                if (selectedVoiceName !== 'system-default') {
-                    const selectedVoice = availableVoices.find(v => v.name === selectedVoiceName);
-                    if (selectedVoice) utterance.voice = selectedVoice;
-                } else {
-                    utterance.voice = null;
-                }
-                
-                progressDisplay.textContent = `📚 正在讀出 (${currentIndex}/${wordsArray.length}): ${text} (第 ${currentRepeat} 次)`;
-
-                utterance.onend = () => {
-                    if (currentRepeat < totalRepeats) {
-                        currentTimeout = setTimeout(() => {
-                            readWordWithRepeat(text, rate, totalRepeats, currentRepeat + 1);
-                        }, REPEAT_GAP); 
-                    } else {
-                        const gapTime = parseFloat(gapSlider.value) * 1000;
-                        currentTimeout = setTimeout(nextWord, gapTime);
-                    }
-                };
-                
-                utterance.onerror = (event) => {
-                    console.error('Error:', event);
-                    const gapTime = parseFloat(gapSlider.value) * 1000;
-                    currentTimeout = setTimeout(nextWord, gapTime);
-                };
-
-                synth.speak(utterance);
-            }
-            
-            // --- 步驟 3: 處理文字輸入 (BUG 修復關鍵點) ---
-            function prepareWords() {
-                let text = wordInput.value; // 不要在這裡 trim 整個文本，以免影響結構
-
-                // 🔴 修正：分割邏輯
-                // 舊代碼: text.split(/\s+/)  <- 這裡會把空格切開，導致句子斷裂
-                // 新代碼: 僅使用「換行 (\n)」或「中文/英文逗號 (,, ，)」來分割
-                let rawItems = text.split(/[\n\r,，]+/);
-
-                wordsArray = rawItems
-                    .map(item => {
-                        let cleanItem = item.trim(); // 去除前後空格
-                        
-                        // 處理標點符號設定
-                        if (!readPunctuation.checked) {
-                            // 如果不讀標點，我們只移除那些會被讀出來的符號 (如 ! ? 等)，但保留句子結構
-                            // 這裡簡單處理：如果不勾選，通常 TTS 引擎會自動忽略標點發音，只做停頓
-                            // 為了保險，我們可以替換掉一些特殊符號，但保留字母間的空格
-                        }
-                        return cleanItem;
-                    })
-                    .filter(item => item.length > 0); // 過濾掉空行
-
-                currentIndex = 0;
+        pauseButton.onclick = () => {
+            if (isPaused) {
                 isPaused = false;
+                synth.resume();
+                pauseButton.innerText = "⏸️ 暫停";
+                // 恢復邏輯需要小心，簡單起見，如果是因為間隔期間暫停，恢復時直接讀下一個
+                if (!synth.speaking) nextItem();
+            } else {
+                isPaused = true;
+                synth.pause();
+                clearTimeout(currentTimeout);
+                pauseButton.innerText = "▶️ 繼續";
+                progressDisplay.innerText += " (已暫停)";
             }
+        };
 
-            function nextWord() {
-                if (currentIndex >= wordsArray.length) {
-                    progressDisplay.textContent = "✅ 默書結束！";
-                    resetControls(true);
-                    return;
-                }
-                if (isPaused) return;
+        function resetControls(finished) {
+            clearTimeout(currentTimeout);
+            synth.cancel();
+            isPaused = false;
+            startButton.disabled = false;
+            startButton.innerText = "▶️ 開始默書";
+            pauseButton.disabled = true;
+            resetButton.disabled = true;
+            pauseButton.innerText = "⏸️ 暫停";
+            if (!finished) progressDisplay.innerText = "準備就緒";
+        }
 
-                const currentWord = wordsArray[currentIndex];
-                const repeatCount = parseInt(repeatCountSlider.value);
-                
-                // 由於句子可能較長，這裡將 currentIndex 加一移到這裡顯示，邏輯不變
-                readWordWithRepeat(currentWord, rateSlider.value, repeatCount, 1);
-                currentIndex++; 
-            }
-            
-            // --- 步驟 4: 按鈕事件 ---
-            startButton.addEventListener('click', () => {
-                if (availableVoices.length === 0) {
-                    progressDisplay.textContent = "⚠️ 語音資源仍在加載中，請稍候...";
-                    populateVoiceList();
-                    return;
-                }
-                
-                if (synth.speaking || isPaused) return;
-                
-                synth.cancel(); // 清除舊語音
+        resetButton.onclick = () => resetControls(false);
 
-                prepareWords();
-                if (wordsArray.length === 0) {
-                    alert('請先輸入默書內容！');
-                    return;
-                }
-
-                startButton.textContent = '進行中...';
-                startButton.disabled = true;
-                pauseButton.disabled = false;
-                resetButton.disabled = false;
-                
-                nextWord(); 
-            });
-
-            pauseButton.addEventListener('click', () => {
-                if (isPaused) {
-                    isPaused = false;
-                    synth.resume(); 
-                    pauseButton.textContent = '⏸️ 暫停';
-                    const gapTime = 1; 
-                    currentTimeout = setTimeout(nextWord, gapTime);
-                } else {
-                    isPaused = true;
-                    synth.pause(); 
-                    if (currentTimeout) clearTimeout(currentTimeout);
-                    pauseButton.textContent = '▶️ 繼續';
-                    progressDisplay.textContent = `🛑 已暫停`;
-                }
-            });
-
-            function resetControls(isFinished = false) {
-                if (currentTimeout) clearTimeout(currentTimeout);
-                synth.cancel();
-                currentIndex = 0;
-                isPaused = false;
-                startButton.textContent = '▶️ 開始默書';
-                startButton.disabled = false;
-                pauseButton.textContent = '⏸️ 暫停 / 繼續';
-                pauseButton.disabled = true;
-                resetButton.disabled = true;
-                if (!isFinished) progressDisplay.textContent = "請按「開始默書」啟動。";
-            }
-
-            resetButton.addEventListener('click', () => {
-                resetControls(false);
-            });
-            
-            resetControls(false);
-            populateVoiceList();
-        });
+        // 頁面加載時執行一次模式設定
+        switchMode('vocab');
     </script>
-
 </body>
 </html>
